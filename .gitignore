@@ -12,3 +12,6 @@ wheels/
 # mac os file
 .DS_Store
 
+# env file
+.env
+.env.example
