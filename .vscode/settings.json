@@ -1,0 +1,4 @@
+{
+  "editor.defaultFormatter": "Codeium.windsurfPyright",
+  "basedpyright.analysis.useTypingExtensions": true
+}
