@@ -12,10 +12,10 @@ from langgraph.constants import Send
 from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
-from backend import retrieval
-from backend.retrieval_graph.configuration import AgentConfiguration
-from backend.retrieval_graph.researcher_graph.state import QueryState, ResearcherState
-from backend.utils import load_chat_model
+from src import retrieval
+from src.retrieval_graph.configuration import AgentConfiguration
+from src.retrieval_graph.researcher_graph.state import QueryState, ResearcherState
+from src.utils import load_chat_model
 
 
 async def generate_queries(

@@ -15,3 +15,6 @@ wheels/
 # env file
 .env
 .env.example
+
+# vector db, include subdirectories
+vector_db/
