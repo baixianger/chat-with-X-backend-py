@@ -1,4 +1,9 @@
 {
   "editor.defaultFormatter": "Codeium.windsurfPyright",
-  "basedpyright.analysis.useTypingExtensions": true
+  "basedpyright.analysis.useTypingExtensions": true,
+  "notebook.defaultFormatter": "Codeium.windsurfPyright",
+  "python.terminal.shellIntegration.enabled": true,
+  "python.languageServer": "Default",
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "windsurfPyright.analysis.typeCheckingMode": "basic",
 }
