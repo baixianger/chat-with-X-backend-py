@@ -1,94 +1,87 @@
-"""Define the configurable parameters for the agent."""
+import os
+import sys
 
-from __future__ import annotations
-
-from dataclasses import dataclass, field, fields
-from typing import Annotated, Any, Literal, Optional, Type, TypeVar
-
-from langchain_core.runnables import RunnableConfig, ensure_config
-
-MODEL_NAME_TO_RESPONSE_MODEL = {
-    "anthropic_claude_3_5_sonnet": "anthropic/claude-3-5-sonnet-20240620",
-}
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from pydantic import BaseModel, Field
+from typing import Literal, Any, Annotated
+from src import prompts
 
 
-def _update_configurable_for_backwards_compatibility(
-    configurable: dict[str, Any],
-) -> dict[str, Any]:
-    update = {}
-    if "k" in configurable:
-        update["search_kwargs"] = {"k": configurable["k"]}
-
-    if "model_name" in configurable:
-        update["response_model"] = MODEL_NAME_TO_RESPONSE_MODEL.get(
-            configurable["model_name"], configurable["model_name"]
-        )
-
-    if update:
-        return {**configurable, **update}
-
-    return configurable
+class LLMConfig(BaseModel):
+    query_model: str = Field(
+        default="openai/gpt-4o-mini",
+        description="The language model used for processing and refining queries. Should be in the form: provider/model-name.",
+    )
+    response_model: str = Field(
+        default="openai/gpt-4o-mini",
+        description="The language model used for generating responses. Should be in the form: provider/model-name.",
+    )
 
 
-@dataclass(kw_only=True)
-class BaseConfiguration:
-    """Configuration class for indexing and retrieval operations.
-
-    This class defines the parameters needed for configuring the indexing and
-    retrieval processes, including embedding model selection, retriever provider choice, and search parameters.
-    """
-
+class EmbeddingsConfig(BaseModel):
     embedding_model: Annotated[
         str,
         {"__template_metadata__": {"kind": "embeddings"}},
-    ] = field(
+    ] = Field(
         default="openai/text-embedding-3-small",
-        metadata={
-            "description": "Name of the embedding model to use. Must be a valid embedding model name."
-        },
+        description="Name of the embedding model to use. Must be a valid embedding model name.",
     )
 
+
+class RetrieverConfig(EmbeddingsConfig):
     retriever_provider: Annotated[
-        Literal["weaviate"],
+        Literal["chroma", "weaviate", "duck", "supabase"],
         {"__template_metadata__": {"kind": "retriever"}},
-    ] = field(
-        default="weaviate",
-        metadata={"description": "The vector store provider to use for retrieval."},
+    ] = Field(
+        default="chroma",
+        description="Name of the retriever to use. Must be a valid retriever name.",
     )
 
-    search_kwargs: dict[str, Any] = field(
+    search_kwargs: dict[str, Any] = Field(
         default_factory=dict,
         metadata={
             "description": "Additional keyword arguments to pass to the search function of the retriever."
         },
     )
 
-    # for backwards compatibility
-    k: int = field(
-        default=6,
-        metadata={
-            "description": "The number of documents to retrieve. Use search_kwargs instead."
-        },
+
+class PromptConfig(BaseModel):
+
+    router_system_prompt: str = Field(
+        default=prompts.ROUTER_SYSTEM_PROMPT,
+        description="The system prompt used for classifying user questions to route them to the correct node.",
     )
 
-    @classmethod
-    def from_runnable_config(
-        cls: Type[T], config: Optional[RunnableConfig] = None
-    ) -> T:
-        """Create an IndexConfiguration instance from a RunnableConfig object.
+    more_info_system_prompt: str = Field(
+        default=prompts.MORE_INFO_SYSTEM_PROMPT,
+        description="The system prompt used for asking for more information from the user.",
+    )
 
-        Args:
-            cls (Type[T]): The class itself.
-            config (Optional[RunnableConfig]): The configuration object to use.
+    general_system_prompt: str = Field(
+        default=prompts.GENERAL_SYSTEM_PROMPT,
+        description="The system prompt used for responding to general questions.",
+    )
 
-        Returns:
-            T: An instance of IndexConfiguration with the specified configuration.
-        """
-        config = ensure_config(config)
-        configurable = config.get("configurable") or {}
-        configurable = _update_configurable_for_backwards_compatibility(configurable)
-        _fields = {f.name for f in fields(cls) if f.init}
-        return cls(**{k: v for k, v in configurable.items() if k in _fields})
+    research_plan_system_prompt: str = Field(
+        default=prompts.RESEARCH_PLAN_SYSTEM_PROMPT,
+        description="The system prompt used for generating a research plan based on the user's question.",
+    )
+
+    generate_queries_system_prompt: str = Field(
+        default=prompts.GENERATE_QUERIES_SYSTEM_PROMPT,
+        description="The system prompt used by the researcher to generate queries based on a step in the research plan.",
+    )
+
+    response_system_prompt: str = Field(
+        default=prompts.RESPONSE_SYSTEM_PROMPT,
+        description="The system prompt used for generating responses.",
+    )
 
 
-T = TypeVar("T", bound=BaseConfiguration)
+class Configuration(LLMConfig, RetrieverConfig, PromptConfig):
+    pass
+
+
+if __name__ == "__main__":
+    config = Configuration()
+    print(config)

@@ -1,0 +1,42 @@
+[
+  {
+    "name": "langchain", 
+    "description": "", 
+    "source": "langchain",
+    "includes": ["documents", "api_reference", "source_code"],
+    "provider": "chroma",
+    "embedding_model": "openai/text-embedding-3-small",
+    "chunk_size": 4000,
+    "chunk_overlap": 200
+  },
+  {
+    "name": "langgraph", 
+    "description": "", 
+    "source": "langgraph",
+    "includes": ["documents", "api_reference", "source_code"],
+    "provider": "chroma",
+    "embedding_model": "openai/text-embedding-3-small",
+    "chunk_size": 4000,
+    "chunk_overlap": 200
+  },
+  {
+    "name": "langsmith", 
+    "description": "", 
+    "source": "langsmith",
+    "includes": ["documents", "api_reference", "source_code"],
+    "provider": "chroma",
+    "embedding_model": "openai/text-embedding-3-small",
+    "chunk_size": 4000,
+    "chunk_overlap": 200
+  },
+  {
+    "name": "supabase", 
+    "description": "", 
+    "source": "supabase",
+    "includes": ["documents", "api_reference", "source_code"],
+    "provider": "chroma",
+    "embedding_model": "openai/text-embedding-3-small",
+    "chunk_size": 4000,
+    "chunk_overlap": 200
+  }
+]

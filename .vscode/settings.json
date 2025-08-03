@@ -1,9 +1,22 @@
 {
-  "editor.defaultFormatter": "Codeium.windsurfPyright",
+  "editor.defaultFormatter": "ms-python.black-formatter",
   "basedpyright.analysis.useTypingExtensions": true,
   "notebook.defaultFormatter": "Codeium.windsurfPyright",
   "python.terminal.shellIntegration.enabled": true,
-  "python.languageServer": "Default",
+  "python.languageServer": "None",
   "python.terminal.activateEnvInCurrentTerminal": true,
-  "windsurfPyright.analysis.typeCheckingMode": "basic",
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.autoImportCompletions": true,
+  // "windsurfPyright.analysis.typeCheckingMode": "basic",
+  "windsurfPyright.analysis.inlayHints.callArgumentNames": true,
+  "windsurfPyright.analysis.inlayHints.functionReturnTypes": true,
+  "windsurfPyright.analysis.inlayHints.genericTypes": true,
+  "windsurfPyright.analysis.inlayHints.variableTypes": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "windsurfPyright.analysis.useTypingExtensions": true,
 }
