@@ -1,39 +1,159 @@
 [
   {
-    "name": "langchain", 
-    "description": "", 
+    "name": "langchain",
+    "description": "",
     "source": "langchain",
-    "includes": ["documents", "api_reference", "source_code"],
+    "includes": [
+      {
+        "doc": {
+          "type": "documents",
+          "url": "https://python.langchain.com/docs/",
+          "exclude": []
+        }
+      },
+      {
+        "ref": {
+          "type": "api_reference",
+          "url": "https://python.langchain.com/api_reference/",
+          "exclude": [
+            "https://python.langchain.com/api_reference/_modules/"
+          ]
+        }
+      },
+      {
+        "code": {
+          "type": "source_code",
+          "url": "https://python.langchain.com/api_reference/_modules/",
+          "exclude": []
+        }
+      }
+    ],
     "provider": "chroma",
     "embedding_model": "openai/text-embedding-3-small",
     "chunk_size": 4000,
     "chunk_overlap": 200
   },
   {
-    "name": "langgraph", 
-    "description": "", 
+    "name": "langgraph",
+    "description": "",
     "source": "langgraph",
-    "includes": ["documents", "api_reference", "source_code"],
+    "includes": [
+      {
+        "doc": {
+          "type": "documents",
+          "url": "https://langchain-ai.github.io/langgraph/",
+          "exclude": [
+            "https://langchain-ai.github.io/langgraph/reference/"
+          ]
+        }
+      },
+      {
+        "ref": {
+          "type": "api_reference",
+          "url": "https://langchain-ai.github.io/langgraph/reference/",
+          "exclude": []
+        }
+      }
+    ],
     "provider": "chroma",
     "embedding_model": "openai/text-embedding-3-small",
     "chunk_size": 4000,
     "chunk_overlap": 200
   },
   {
-    "name": "langsmith", 
-    "description": "", 
+    "name": "langgraph platform",
+    "description": "",
+    "source": "langgraph platform",
+    "includes": [
+      {
+        "doc": {
+          "type": "documents",
+          "url": "https://docs.langchain.com/langgraph-platform/",
+          "exclude": []
+        }
+      },
+      {
+        "ref": {
+          "type": "api_reference",
+          "url": "https://langchain-ai.github.io/langgraph/cloud/reference/api/api_ref.html",
+          "exclude": []
+        }
+      }
+    ],
+    "provider": "chroma",
+    "embedding_model": "openai/text-embedding-3-small",
+    "chunk_size": 4000,
+    "chunk_overlap": 200
+  },
+  {
+    "name": "langsmith",
+    "description": "",
     "source": "langsmith",
-    "includes": ["documents", "api_reference", "source_code"],
+    "includes": [
+      {
+        "doc": {
+          "type": "documents",
+          "url": "https://docs.smith.langchain.com/",
+          "exclude": [
+            "https: //docs.smith.langchain.com/reference/python/reference"
+          ]
+        }
+      },
+      {
+        "ref": {
+          "type": "api_reference",
+          "url": "https://docs.smith.langchain.com/reference/python/reference",
+          "exclude": [
+            "https://docs.smith.langchain.com/reference/python/_modules/"
+          ]
+        }
+      },
+      {
+        "code": {
+          "type": "source_code",
+          "url": "https://docs.smith.langchain.com/reference/python/_modules/",
+          "exclude": []
+        }
+      }
+    ],
     "provider": "chroma",
     "embedding_model": "openai/text-embedding-3-small",
     "chunk_size": 4000,
     "chunk_overlap": 200
   },
   {
-    "name": "supabase", 
-    "description": "", 
+    "name": "supabase",
+    "description": "",
     "source": "supabase",
-    "includes": ["documents", "api_reference", "source_code"],
+    "includes": [
+      {
+        "doc": {
+          "type": "documents",
+          "url": "https://python.langchain.com/api_reference/langgraph/",
+          "exclude": [
+            "/docs/api_reference/langgraph/"
+          ]
+        }
+      },
+      {
+        "ref": {
+          "type": "api_reference",
+          "url": "https://python.langchain.com/api_reference/langgraph/",
+          "exclude": [
+            "/docs/api_reference/langgraph/"
+          ]
+        }
+      },
+      {
+        "code": {
+          "type": "source_code",
+          "url": "https://python.langchain.com/api_reference/langgraph/",
+          "exclude": [
+            "/docs/api_reference/langgraph/"
+          ]
+        }
+      }
+    ],
     "provider": "chroma",
     "embedding_model": "openai/text-embedding-3-small",
     "chunk_size": 4000,

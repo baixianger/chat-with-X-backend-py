@@ -1,7 +1,7 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 from pydantic import BaseModel, Field
 from typing import Literal, Any, Annotated
 from src import prompts
@@ -35,6 +35,16 @@ class RetrieverConfig(EmbeddingsConfig):
     ] = Field(
         default="chroma",
         description="Name of the retriever to use. Must be a valid retriever name.",
+    )
+
+    chunk_size: int = Field(
+        default=4000,
+        description="The maximum number of tokens in a chunk.",
+    )
+
+    chunk_overlap: int = Field(
+        default=200,
+        description="The number of tokens to overlap between chunks.",
     )
 
     search_kwargs: dict[str, Any] = Field(

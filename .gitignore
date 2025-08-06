@@ -18,3 +18,4 @@ wheels/
 
 # vector db, include subdirectories
 vector_db/
+data/
