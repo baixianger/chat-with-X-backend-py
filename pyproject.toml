@@ -31,4 +31,33 @@ dependencies = [
 dev = [
     "rich>=14.1.0",
     "jupyter>=1.1.1",
+    "ruff>=0.12.7",
 ]
+
+[tool.pylint.MASTER]
+ignore-paths = '^notebooks/.*$'
+
+[tool.ruff]
+lint.select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # isort
+    "D",    # pydocstyle
+    "D401", # First line should be in imperative mood
+    "T201",
+    "UP",
+]
+lint.ignore = [
+    "UP006",
+    "UP007",
+    # We actually do want to import from typing_extensions
+    "UP035",
+    # Relax the convention by _not_ requiring documentation for every function parameter.
+    "D417",
+    "E501",
+]
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D", "UP"]
+"notebooks/*" = ["E", "F", "I", "D",  "D401", "T201", "UP",]
+[tool.ruff.lint.pydocstyle]
+convention = "google"
