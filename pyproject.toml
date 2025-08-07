@@ -1,7 +1,10 @@
 [project]
 name = "chat-with-x-backend-py"
 version = "0.1.0"
-description = "Add your description here"
+description = "Chat-with-X is a RAG-based assistant that answers programming questions by retrieving and summarizing relevant information from documentation, APIs, and source code for specific stacks, libraries, or frameworks."
+authors = [
+    { name = "Xiang Bai & Langchain", email = "baixianger@gmail.com" },
+]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

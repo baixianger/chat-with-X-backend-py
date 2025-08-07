@@ -1,0 +1,3 @@
+[MASTER]
+ignore=tests,migrations,build
+ignore-patterns=^notebook/.*$
