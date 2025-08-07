@@ -1,8 +1,12 @@
+"""
+Document loader for the retrieval graph.
+"""
+# pylint: disable=wrong-import-position
 import os
 import sys
+from typing import Optional, Callable, Any, Union, Literal
 import requests
 import aiohttp
-from typing import Optional, Callable, Union, Literal, Any
 from bs4 import BeautifulSoup
 from langchain_community.document_loaders import RecursiveUrlLoader, SitemapLoader
 from langchain.utils.html import PREFIXES_TO_IGNORE_REGEX, SUFFIXES_TO_IGNORE_REGEX
@@ -36,10 +40,12 @@ def site_map_loader(
     bs_kwargs: Optional[dict[str, Any]] = None,
     meta_kwargs: Optional[dict[str, Any]] = None,
 ):
-    meta_function = lambda meta, soup: meta_function(meta, soup, **meta_kwargs)
+    """Load a sitemap and return a list of documents."""
     loader = SitemapLoader(
         web_path=path,
-        meta_function=meta_function,
+        meta_function=lambda meta, soup: meta_function(
+            meta, soup, **(meta_kwargs or {})
+            ) if meta_function else {},
         bs_kwargs=bs_kwargs,
         filter_urls=filter_urls,
         parsing_function=parsing_function,
@@ -56,21 +62,20 @@ def site_map_loader(
 def recursive_url_loader(
     path: str,
     filter_urls: Optional[list[str]] = None,
-    metadata_extractor: Optional[
-        Callable[
-            [str, str, Union[requests.Response, aiohttp.ClientResponse]], dict[str, Any]
-        ]
-    ] = recursive_url_metadata_extractor,
+    metadata_extractor: Optional[Callable[
+        [str, str, Union[requests.Response, aiohttp.ClientResponse]], dict[str, Any]
+    ]] = None,
     extractor: Optional[Callable[[str], str]] = recursive_url_extractor,
     meta_kwargs: Optional[dict[str, Any]] = None,
-    max_depth: Optional[int] = 5,
+    max_depth: int = 5,
 ):
+    """Load a recursive url and return a list of documents."""
     loader = RecursiveUrlLoader(
         url=path,
         max_depth=max_depth,
         metadata_extractor=lambda raw_html, url, response: metadata_extractor(
-            raw_html, url, response, **meta_kwargs
-        ),
+            raw_html, url, response, **(meta_kwargs or {})
+        ) if metadata_extractor else {},
         extractor=extractor,
         prevent_outside=True,
         use_async=True,
@@ -87,13 +92,13 @@ def recursive_url_loader(
 
 if __name__ == "__main__":
 
-    meta_kwargs = {"type": "documents", "lang": "python"}
+    test_meta_kwargs = {"doc_type": "doc", "lang": "python"}
     langchain_doc = recursive_url_loader(
         path="https://python.langchain.com/docs/",
         max_depth=4,
-        meta_kwargs=meta_kwargs,
+        meta_kwargs=test_meta_kwargs,
     )
     # save doc in txt file
     for doc in langchain_doc:
-        with open(f"./data/{doc.metadata['title']}.txt", "w") as f:
+        with open(f"./data/{doc.metadata['title']}.txt", "w", encoding="utf-8") as f:
             f.write(doc.page_content)

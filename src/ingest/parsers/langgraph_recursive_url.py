@@ -1,10 +1,19 @@
+"""
+Parser for the langgraph recursive url.
+"""
+# pylint: disable=wrong-import-position
+# pylint: disable=line-too-long
+# pylint: disable=unused-argument
+# pylint: disable=expression-not-assigned
+# type: ignore
 import os
 import sys
 import re
-import requests
+from typing import Generator, Callable, Union
 import aiohttp
-from typing import Generator, Optional, Union, Literal, Callable
-from bs4 import BeautifulSoup, Doctype, NavigableString, Tag
+import requests
+from bs4 import BeautifulSoup
+from bs4.element import NavigableString, Tag, Doctype
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -13,14 +22,13 @@ def langgraph_recursive_url_metadata_extractor(
     raw_html: str,
     url: str,
     response: Union[requests.Response, aiohttp.ClientResponse],
-    *,
-    type: Literal["documents", "api_reference", "source_code"],
-    lang: Optional[str] = "python",
+    **kwargs,
 ) -> dict:
+    """Extract metadata from the langgraph recursive url."""
     soup = BeautifulSoup(raw_html, "lxml")
     title_element = soup.find("title")
     try:
-        title_element.find("a").decompose()
+        title_element.find("a").decompose() # type: ignore
     except AttributeError:
         pass
     title = (
@@ -29,41 +37,41 @@ def langgraph_recursive_url_metadata_extractor(
     return {
         "source": url,
         "title": title,
-        "type": type,
-        "lang": lang if lang else "",
+        **kwargs,
     }
 
 
 def get_title(title: Tag) -> Generator[str, None, None]:
+    """Get the title of the tag."""
     a_tag = title.find("a")
-    if a_tag and a_tag.get("href"):
-        url = a_tag["href"]
-        yield f"{'#' * int(title.name[1:])} [{title.get_text(strip=True)[:-2]}]({url})\n\n"
-    else:
-        yield f"{'#' * int(title.name[1:])} {title.get_text(strip=True)}\n\n"
-
+    if a_tag:
+        a_tag.decompose()
+    yield f"{'#' * int(title.name[1:])} {title.get_text(strip=True)}\n\n"
 
 def get_code_line(code: Tag):
+    """Get the code line from the code tag."""
     for child in code.children:
-        if child.name == "span":
+        if child.name == "span": # type: ignore
             yield child.get_text()
         else:
             continue
 
 
 def get_list(
-    list: Tag,
+    list_tag: Tag,
     ordered: bool,
     nested_handler: Callable[[Tag], Generator[str, None, None]],
 ) -> Generator[str, None, None]:
-    for i, li in enumerate(list.find_all("li", recursive=False)):
+    """Get the list from the list tag."""
+    for i, li in enumerate(list_tag.find_all("li", recursive=False)):
         prefix = f"{i + 1}. " if ordered else "- "
         yield prefix
-        yield from nested_handler(li)
+        yield from nested_handler(li) # type: ignore
         yield "\n\n"
 
 
 def get_table(table: Tag) -> Generator[str, None, None]:
+    """Get the table from the table tag."""
     thead = table.find("thead")
     if isinstance(thead, Tag):
         headers = thead.find_all("th")
@@ -76,18 +84,18 @@ def get_table(table: Tag) -> Generator[str, None, None]:
         for row in tbody.find_all("tr"):
             yield "| " + " | ".join(
                 cell.get_text(strip=True).replace("\n", " ")
-                for cell in row.find_all("td")
+                for cell in row.find_all("td") # type: ignore
             ) + " |\n"
 
-
+# type: ignore
 def get_toc(nav: Tag, level: int = 0) -> Generator[str, None, None]:
-    # TOC 标题
+    """Get the table of contents from the nav tag."""
     for child in nav.children:
-        if child.name == "label":
+        if child.name == "label": # type: ignore
             yield child.get_text(strip=True)
-        elif child.name == "ul":
-            for li in child.find_all("li", recursive=False):
-                a_tag = li.find("a", recursive=False)
+        elif child.name == "ul": # type: ignore
+            for li in child.find_all("li", recursive=False): # type: ignore
+                a_tag = li.find("a", recursive=False) # type: ignore
                 if a_tag and a_tag.get("href"):
                     title = a_tag.get_text(strip=True)
 
@@ -109,18 +117,25 @@ def get_toc(nav: Tag, level: int = 0) -> Generator[str, None, None]:
                 if li.find("nav", recursive=False):
                     sub_nav = li.find("nav", recursive=False)
                     yield from get_toc(sub_nav, level + 1)
-            else:
-                continue
+        else:
+            continue
+
+SCAPE_TAGS = ["footer", "aside", "script", "style"]
 
 
-def langgraph_recursive_url_extractor(soup: BeautifulSoup) -> str:
+def langgraph_recursive_url_extractor(raw_html: str) -> str:
+    """Extract the text from the raw html."""
+    if isinstance(raw_html, BeautifulSoup):
+        soup = raw_html
+    else:
+        soup = BeautifulSoup(raw_html, "lxml")
     # Remove all the tags that are not meaningful for the extraction.
-    SCAPE_TAGS = ["footer", "aside", "script", "style"]
+
     [tag.decompose() for tag in soup.find_all(SCAPE_TAGS)]
 
     # find table of content nav
-    toc = soup.find("nav", {"aria-label": "Table of contents"})
-    if toc:
+    toc = soup.find("nav", {"aria-label": "Table of contents"})  # type: ignore
+    if isinstance(toc, Tag):
         table_of_content = "\n".join(get_toc(toc))
     else:
         table_of_content = ""
@@ -149,8 +164,8 @@ def langgraph_recursive_url_extractor(soup: BeautifulSoup) -> str:
                     yield "\n"
                 elif child.name == "code":
                     parent = child.find_parent()
-                    if parent is not None and parent.name == "pre":
-                        classes = parent.parent.attrs.get("class", "")
+                    if parent is not None and parent.name == "pre": # type: ignore
+                        classes = parent.parent.attrs.get("class", "") # type: ignore
 
                         language = next(
                             filter(lambda x: re.match(r"language-\w+", x), classes),
@@ -182,15 +197,17 @@ def langgraph_recursive_url_extractor(soup: BeautifulSoup) -> str:
                     for tab, tab_panel in zip(tabs, tab_panels):
                         tab_name = tab.get_text(strip=True)
                         yield f"{tab_name}\n"
-                        yield from get_text(tab_panel)
+                        yield from get_text(tab_panel) # type: ignore
                 elif child.name == "table":
                     yield from get_table(child)
                 elif child.name in ["button"]:
                     continue
                 else:
                     yield from get_text(child)
-
-    article_content = "".join(get_text(article_element))
+    if isinstance(article_element, Tag):
+        article_content = "".join(get_text(article_element))
+    else:
+        article_content = ""
     md_content = f"{table_of_content}\n\n{article_content}"
     return re.sub(r"\n\n+", "\n\n", md_content).strip()
 
@@ -202,18 +219,17 @@ if __name__ == "__main__":
     from rich.pretty import pprint
 
     console = Console()
-    url = "https://langchain-ai.github.io/langgraph/reference/graphs/"
+    TEST_URL = "https://langchain-ai.github.io/langgraph/reference/graphs/"
 
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "lxml")
+    test_response = requests.get(TEST_URL, timeout=10)
     metadata = langgraph_recursive_url_metadata_extractor(
-        raw_html=response.text,
-        url=url,
-        response=response,
-        type="api",
+        raw_html=test_response.text,
+        url=TEST_URL,
+        response=test_response,
+        doc_type="doc",
         lang="python",
     )
     pprint(metadata)
-    doc = langgraph_recursive_url_extractor(soup)
+    doc = langgraph_recursive_url_extractor(test_response.text)
     md = Markdown(doc)
     console.print(md)

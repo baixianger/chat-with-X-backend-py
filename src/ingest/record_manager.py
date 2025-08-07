@@ -1,10 +1,15 @@
+"""
+Record manager for the retrieval graph.
+"""
+# pylint: disable=wrong-import-position
 import os
 import sys
+from typing import Literal
+from langchain.indexes import SQLRecordManager
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from langchain.indexes import SQLRecordManager
 from src.utils import get_record_db_url
-from typing import Literal
+
 
 
 def get_record_manager(
@@ -12,6 +17,7 @@ def get_record_manager(
     collection_name: str,
     embedding_name: str,
 ):
+    """Get the record manager."""
     namespace = f"{vector_provider}/{collection_name}/{embedding_name}"
     return SQLRecordManager(
         namespace=namespace,
@@ -20,5 +26,5 @@ def get_record_manager(
 
 
 if __name__ == "__main__":
-    print(get_record_db_dir())
+    print(get_record_db_url())
     print(get_record_manager("chroma", "test_collection", "text-embedding-3-small"))

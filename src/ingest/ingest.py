@@ -1,11 +1,12 @@
+"""
+Ingest data into the retrieval graph.
+"""
+# pylint: disable=wrong-import-position
 import os
 import sys
 import logging
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
 from langchain.indexes import index
-from chromadb.api.models.Collection import Collection
-from chromadb.api import ClientAPI
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 from src.embeddings import get_embeddings_model
@@ -19,24 +20,18 @@ from src.ingest.parsers.langchain_recursive_url import (
     exclude_urls_doc,
     exclude_urls_ref,
 )
-from src.ingest.parsers.langsmith_recursive_url import (
-    langsmith_recursive_url_metadata_extractor,
-    langsmith_recursive_url_extractor,
-)
-from src.ingest.parsers.langsmith_recursive_url import (
-    langsmith_recursive_url_metadata_extractor,
-    langsmith_recursive_url_extractor,
-)
+
 
 
 def ingest(collection_name: str):
+    """Ingest data into the retrieval graph."""
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     config = Configuration()
     embedding = get_embeddings_model(config.embedding_model)
     store = get_vector_store(
         provider=config.retriever_provider,
-        model="persistent",
+        storage_type=config.storage_type,
         collection_name=collection_name,
         embedding=embedding,
     )
@@ -53,30 +48,30 @@ def ingest(collection_name: str):
         path="https://python.langchain.com/docs/",
         filter_urls=exclude_urls_doc,
         max_depth=4,
-        meta_kwargs={"type": "doc", "lang": "python"},
+        meta_kwargs={"doc_type": "doc", "lang": "python"},
         metadata_extractor=langchain_recursive_url_metadata_extractor,
         extractor=langchain_recursive_url_extractor,
     )
-    logger.info(f"Loaded {len(langchain_doc)} docs from documentation")
+    logger.info("Loaded %d docs from documentation", len(langchain_doc))
 
     langchain_ref = recursive_url_loader(
         path="https://python.langchain.com/api_reference/",
         filter_urls=exclude_urls_ref,
         max_depth=4,
-        meta_kwargs={"type": "ref", "lang": "python"},
+        meta_kwargs={"doc_type": "ref", "lang": "python"},
         metadata_extractor=langchain_recursive_url_metadata_extractor,
         extractor=langchain_recursive_url_extractor,
     )
-    logger.info(f"Loaded {len(langchain_ref)} docs from api_reference")
+    logger.info("Loaded %d docs from api_reference", len(langchain_ref))
 
     langchain_code = recursive_url_loader(
         path="https://python.langchain.com/api_reference/_modules/",
         max_depth=4,
-        meta_kwargs={"type": "code", "lang": "python"},
+        meta_kwargs={"doc_type": "code", "lang": "python"},
         metadata_extractor=langchain_recursive_url_metadata_extractor,
         extractor=langchain_recursive_url_extractor,
     )
-    logger.info(f"Loaded {len(langchain_code)} docs from source_code")
+    logger.info("Loaded %d docs from source_code", len(langchain_code))
 
     docs_transformed = text_splitter.split_documents(
         langchain_doc + langchain_ref + langchain_code
@@ -91,10 +86,12 @@ def ingest(collection_name: str):
         force_update=(os.environ.get("FORCE_UPDATE") or "false").lower() == "true",
     )
 
-    logger.info(f"Indexing stats: {indexing_stats}")
-    num_vecs = store._collection(collection_name).count()
+    logger.info("Indexing stats: %s", indexing_stats)
+    # Get collection count using public API
+    num_vecs = store._collection.count()  # pylint: disable=protected-access
     logger.info(
-        f"LangChain now has this many vectors: {num_vecs}",
+        "LangChain now has this many vectors: %d",
+        num_vecs,
     )
 
 

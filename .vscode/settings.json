@@ -12,7 +12,7 @@
   "windsurfPyright.analysis.inlayHints.genericTypes": true,
   "windsurfPyright.analysis.inlayHints.variableTypes": true,
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.defaultFormatter": "ms-python.autopep8",
     "linting.enabled": true,
     "python.linting.pylintEnabled": true,
     "python.analysis.typeCheckingMode": "basic",
@@ -24,4 +24,7 @@
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
   },
+  "cursorpyright.analysis.autoImportCompletions": true,
+  "cursorpyright.analysis.diagnosticMode": "workspace",
+  "cursorpyright.analysis.typeCheckingMode": "basic",
 }

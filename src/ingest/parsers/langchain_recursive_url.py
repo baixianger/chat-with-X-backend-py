@@ -1,11 +1,17 @@
+"""
+Parser for the langchain recursive url.
+"""
+# pylint: disable=wrong-import-position
+# pylint: disable=line-too-long
+# pylint: disable=unused-argument
 import os
 import sys
 import re
-import requests
+from typing import Generator, Callable, Union
 import aiohttp
-from types import NoneType
-from typing import Generator, Optional, Union, Literal, Callable
-from bs4 import BeautifulSoup, Doctype, NavigableString, Tag
+import requests
+from bs4 import BeautifulSoup
+from bs4.element import NavigableString, AttributeValueList, Tag, Doctype
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -14,14 +20,13 @@ def langchain_recursive_url_metadata_extractor(
     raw_html: str,
     url: str,
     response: Union[requests.Response, aiohttp.ClientResponse],
-    *,
-    type: Literal["documents", "api_reference", "source_code"],
-    lang: Optional[str] = "python",
+    **kwargs,
 ) -> dict:
+    """Extract metadata from the langchain recursive url."""
     soup = BeautifulSoup(raw_html, "lxml")
     title_element = soup.find("h1")
     try:
-        title_element.find("a").decompose()
+        title_element.find("a").decompose() # type: ignore
     except AttributeError:
         pass
     title = (
@@ -30,35 +35,40 @@ def langchain_recursive_url_metadata_extractor(
     return {
         "source": url,
         "title": title,
-        "type": type,
-        "lang": lang if lang else "",
+        **kwargs,
     }
 
 
 def get_title(title: Tag) -> Generator[str, None, None]:
+    """Get the title of the tag."""
     a_tag = title.find("a")
-    a_tag.decompose() if a_tag else None
+    if a_tag:
+        a_tag.decompose()
     yield f"{'#' * int(title.name[1:])} {title.get_text(strip=True)}\n\n"
 
 
 def get_language(div: Tag) -> str:
+    """Get the language of the div tag."""
     # highlight-<language> class is for api reference pages
     # language-<language> class is for documents pages
-    classes = div.get("class", [])
+    classes = div.get("class", AttributeValueList())
+    if classes is None:
+        return ""
     for cls in classes:
         if re.match(r"(highlight|language)-\w+", cls):
             return cls.split("-")[1]
     return ""
 
 
-def get_code(pre: Tag) -> str:
+def get_code(pre: Tag) -> Generator[str, None, None]:
+    """Get the code of the pre tag."""
     for a_tag in pre.find_all("a"):
         a_tag.decompose()
-    if pre.find("code"):  # for code and doc
+    if pre.find("code"):  # code and doc
         code = pre.find("code")
-        for child in code.children:
+        for child in code.children: # type: ignore
             yield child.get_text() + "\n"
-    # for api reference, in ord to compatible to the dl dt dd structure
+    # api reference, in ord to compatible to the dl dt dd structure
     else:
         lines = pre.get_text().split("\n")
         for line in lines:
@@ -66,17 +76,18 @@ def get_code(pre: Tag) -> str:
 
 
 def get_list(
-    list: Tag,
+    list_element: Tag,
     ordered: bool,
     nested_handler: Callable[[Tag], Generator[str, None, None]],
 ) -> Generator[str, None, None]:
+    """Get the list of the ul tag."""
     indent_str = "  "
 
-    for i, li in enumerate(list.find_all("li", recursive=False)):
+    for i, li in enumerate(list_element.find_all("li", recursive=False)):
         prefix = f"{i + 1}. " if ordered else "- "
         yield f"{indent_str}{prefix}"
-
-        # 缩进子内容
+        if not isinstance(li, Tag):
+            continue
         for i, line in enumerate(nested_handler(li)):
             if isinstance(line, Tag) and line.name in ["em", "strong", "b", "i", "a"]:
                 yield line
@@ -91,17 +102,19 @@ def get_list(
 def get_description(
     dl: Tag, nested_handler: Callable[[Tag], Generator[str, None, None]]
 ) -> Generator[str, None, None]:
+    """Get the description of the dl tag."""
     dt_tags = dl.find_all("dt", recursive=False)
     dd_tags = dl.find_all("dd", recursive=False)
 
     # Case 1: 数量匹配，一对一处理
     if len(dt_tags) == len(dd_tags):
         for dt, dd in zip(dt_tags, dd_tags):
-            a_tags = dt.find_all("a")
-            [tag.decompose() for tag in a_tags] if a_tags else None
-            yield from nested_handler(dt)
+            a_tags = dt.find_all("a") # type: ignore
+            for tag in a_tags:
+                tag.decompose()
+            yield from nested_handler(dt) # type: ignore
             yield "\n\n"
-            yield from nested_handler(dd)
+            yield from nested_handler(dd) # type: ignore
             yield "\n\n"
     else:
         # Case 2: 不匹配时，尝试顺序输出所有内容（保持原始顺序）
@@ -118,7 +131,10 @@ def get_description(
 
 
 def get_text(tag: Tag) -> Generator[str, None, None]:
-
+    """Get the text of an article tag."""
+    if not hasattr(tag, 'children'):
+        yield str(tag)
+        return
     for child in tag.children:
         if isinstance(child, Doctype):
             continue
@@ -138,8 +154,8 @@ def get_text(tag: Tag) -> Generator[str, None, None]:
             elif child.name == "br":
                 yield "\n"
             elif child.name == "pre":
-                grand_parent = child.parent.parent
-                language = get_language(grand_parent)
+                grand_parent = child.parent.parent # type: ignore
+                language = get_language(grand_parent) if grand_parent else ""
                 yield f"```{language}\n"
                 yield from get_code(child)
                 yield "\n```\n\n"
@@ -163,7 +179,7 @@ def get_text(tag: Tag) -> Generator[str, None, None]:
                 for tab, tab_panel in zip(tabs, tab_panels):
                     tab_name = tab.get_text(strip=True)
                     yield f"{tab_name}\n"
-                    yield from get_text(tab_panel)
+                    yield from get_text(tab_panel) # type: ignore
             elif child.name == "table":
                 thead = child.find("thead")
                 header_exists = isinstance(thead, Tag)
@@ -184,7 +200,7 @@ def get_text(tag: Tag) -> Generator[str, None, None]:
                         yield "| "
                         yield " | ".join(
                             cell.get_text(strip=True).replace("\n", " ")
-                            for cell in row.find_all("td")
+                            for cell in row.find_all("td") # type: ignore
                         )
                         yield " |\n"
 
@@ -192,17 +208,19 @@ def get_text(tag: Tag) -> Generator[str, None, None]:
             else:
                 yield from get_text(child)
 
+SCAPE_TAGS = ["nav", "footer", "aside", "script", "style", "button"]
 
 def langchain_recursive_url_extractor(raw_html, parser="html.parser") -> str:
+    """Extract the text from the raw html."""
     if isinstance(raw_html, BeautifulSoup):
         soup = raw_html
     else:
         soup = BeautifulSoup(raw_html, parser)
     # Remove all the tags that are not meaningful for the extraction.
-    SCAPE_TAGS = ["nav", "footer", "aside", "script", "style", "button"]
-    [tag.decompose() for tag in soup.find_all(SCAPE_TAGS)]
-    article_element = soup.find("article")
-    article_markdown = "".join(get_text(article_element))
+
+    [tag.decompose() for tag in soup.find_all(SCAPE_TAGS)] # pylint: disable=expression-not-assigned
+    article_element = soup.find("article") # type: ignore
+    article_markdown = "".join(get_text(article_element)) # type: ignore
     return re.sub(r"\n\n+", "\n\n", article_markdown).strip()
 
 
@@ -348,24 +366,24 @@ if __name__ == "__main__":
     from rich.pretty import pprint
 
     console = Console()
-    url = "https://python.langchain.com/api_reference/deepseek/chat_models/langchain_deepseek.chat_models.ChatDeepSeek.html#langchain_deepseek.chat_models.ChatDeepSeek"
-    url = "https://python.langchain.com/api_reference/openai/embeddings/langchain_openai.embeddings.azure.AzureOpenAIEmbeddings.html"
-    url = "https://python.langchain.com/api_reference/openai/embeddings/langchain_openai.embeddings.base.OpenAIEmbeddings.html"
-    url = "https://python.langchain.com/api_reference/tavily/tavily_search/langchain_tavily.tavily_search.TavilySearch.html#langchain_tavily.tavily_search.TavilySearch"
-    # url = "https://python.langchain.com/docs/integrations/chat/"
-    url = "https://python.langchain.com/docs/integrations/text_embedding/"
+    TEST_URL = "https://python.langchain.com/api_reference/deepseek/chat_models/langchain_deepseek.chat_models.ChatDeepSeek.html#langchain_deepseek.chat_models.ChatDeepSeek"
+    # TEST_URL = "https://python.langchain.com/api_reference/openai/embeddings/langchain_openai.embeddings.azure.AzureOpenAIEmbeddings.html"
+    # TEST_URL = "https://python.langchain.com/api_reference/openai/embeddings/langchain_openai.embeddings.base.OpenAIEmbeddings.html"
+    # TEST_URL = "https://python.langchain.com/api_reference/tavily/tavily_search/langchain_tavily.tavily_search.TavilySearch.html#langchain_tavily.tavily_search.TavilySearch"
+    # # url = "https://python.langchain.com/docs/integrations/chat/"
+    # TEST_URL = "https://python.langchain.com/docs/integrations/text_embedding/"
     # url = ""
-    response = requests.get(url)
+    test_response = requests.get(TEST_URL, timeout=10)
 
     metadata = langchain_recursive_url_metadata_extractor(
-        raw_html=response.text,
-        url=url,
-        response=response,
-        type="doc",
+        raw_html=test_response.text,
+        url=TEST_URL,
+        response=test_response,
+        doc_type="doc",
         lang="python",
     )
 
     pprint(metadata)
-    doc = langchain_recursive_url_extractor(response.text, parser="lxml")
+    doc = langchain_recursive_url_extractor(test_response.text, parser="lxml")
     md = Markdown(doc)
     console.print(md)

@@ -4,18 +4,17 @@ Functions:
     format_docs: Convert documents to an xml-formatted string.
     load_chat_model: Load a chat model from a model name.
 """
-
 import os
-import sys
 import uuid
 from typing import Any, Literal, Optional, Union
 
 from langchain.chat_models import init_chat_model
 from langchain_core.documents import Document
 from langchain_core.language_models import BaseChatModel
-
+from langchain_community.chat_models import ChatTongyi
 
 def get_record_db_url():
+    """Get the URL of the record database."""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     db_dir = os.path.join(base_dir, "../data/recordDB")
     os.makedirs(db_dir, exist_ok=True)
@@ -23,10 +22,11 @@ def get_record_db_url():
     return f"sqlite:///{db_path}"
 
 
-def get_vector_db_dir(type: Literal["chroma", "supabase", "weaviate", "duck"]) -> str:
+def get_vector_db_dir(provider: Literal["chroma", "supabase", "weaviate", "duck"]) -> str:
+    """Get the directory of the vector database."""
     return os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        f"../data/vectorDB/{type}_db",
+        f"../data/vectorDB/{provider}_db",
     )
 
 
@@ -81,25 +81,6 @@ def format_docs(docs: Optional[list[Document]]) -> str:
 </documents>"""
 
 
-def load_chat_model(fully_specified_name: str) -> BaseChatModel:
-    """Load a chat model from a fully specified name.
-
-    Args:
-        fully_specified_name (str): String in the format 'provider/model'.
-    """
-    if "/" in fully_specified_name:
-        provider, model = fully_specified_name.split("/", maxsplit=1)
-    else:
-        provider = ""
-        model = fully_specified_name
-
-    model_kwargs = {"temperature": 0}
-    if provider == "google_genai":
-        # google doesn't support system message
-        model_kwargs["convert_system_message_to_human"] = True
-    return init_chat_model(model, model_provider=provider, **model_kwargs)
-
-
 def reduce_docs(
     existing: Optional[list[Document]],
     new: Union[
@@ -110,50 +91,35 @@ def reduce_docs(
         Literal["delete"],
     ],
 ) -> list[Document]:
-    """Reduce and process documents based on the input type.
-
-    This function handles various input types and converts them into a sequence of Document objects.
-    It also combines existing documents with the new one based on the document ID.
-
-    Args:
-        existing (Optional[Sequence[Document]]): The existing docs in the state, if any.
-        new (Union[Sequence[Document], Sequence[dict[str, Any]], Sequence[str], str, Literal["delete"]]):
-            The new input to process. Can be a sequence of Documents, dictionaries, strings, or a single string.
-    """
+    """Reduce and process documents based on the input type."""
     if new == "delete":
         return []
 
-    existing_list = list(existing) if existing else []
+    existing_list: list[Document] = list[Document](existing) if existing else []
+    new_list: list[Document] = []
     if isinstance(new, str):
-        return existing_list + [
-            Document(page_content=new, metadata={"uuid": str(uuid.uuid4())})
-        ]
-
-    new_list = []
-    if isinstance(new, list):
-        existing_ids = set(doc.metadata.get("uuid") for doc in existing_list)
+        new_list = [Document(page_content=new, id=str(uuid.uuid4()))]
+    elif isinstance(new, list):
+        existing_ids = set(doc.id for doc in existing_list)
         for item in new:
             if isinstance(item, str):
                 item_id = str(uuid.uuid4())
-                new_list.append(Document(page_content=item, metadata={"uuid": item_id}))
+                new_list.append(Document(page_content=item, id=item_id))
                 existing_ids.add(item_id)
 
             elif isinstance(item, dict):
-                metadata = item.get("metadata", {})
-                item_id = metadata.get("uuid", str(uuid.uuid4()))
+                item_id = item.get("id", str(uuid.uuid4()))
 
                 if item_id not in existing_ids:
-                    new_list.append(
-                        Document(**item, metadata={**metadata, "uuid": item_id})
-                    )
+                    new_list.append(Document(**item, id=item_id))
                     existing_ids.add(item_id)
 
             elif isinstance(item, Document):
-                item_id = item.metadata.get("uuid")
+                item_id = item.id
                 if item_id is None:
                     item_id = str(uuid.uuid4())
-                    new_item = item.copy(deep=True)
-                    new_item.metadata["uuid"] = item_id
+                    new_item = item.model_copy(deep=True)
+                    new_item.id = item_id
                 else:
                     new_item = item
 
@@ -164,8 +130,33 @@ def reduce_docs(
     return existing_list + new_list
 
 
+def load_chat_model(fully_specified_name: str) -> tuple[BaseChatModel, str, str]:
+    """Load a chat model from a fully specified name.
+
+    Args:
+        fully_specified_name (str): String in the format 'provider/model'.
+    """
+    if "/" in fully_specified_name:
+        provider, name = fully_specified_name.split("/", maxsplit=1)
+    else:
+        provider = ""
+        name = fully_specified_name
+
+    if provider == "tongyi":
+        # init_chat_model doesn't support tongyi
+        return ChatTongyi(name=name, api_key=None, model_kwargs={"temperature": 0}), provider, name
+
+    model_kwargs = {}
+    if provider == "google_genai":
+        # google doesn't support system message
+        model_kwargs["convert_system_message_to_human"] = True
+    return (
+        init_chat_model(name, model_provider=provider, temperature=0, **model_kwargs),
+        provider,
+        name,
+    )
+
+
 if __name__ == "__main__":
-    print(get_record_db_dir())
+    print(get_record_db_url())
     print(get_vector_db_dir("chroma"))
-    print(os.path.dirname(os.path.abspath(__file__)))
-    print(os.path.abspath(__file__))

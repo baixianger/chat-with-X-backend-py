@@ -1,9 +1,11 @@
+"""Basic recursive url metadata extractor and extractor."""
+# pylint: disable=unused-argument
 import os
 import sys
 import re
+from typing import Optional, Union, Literal
 import requests
 import aiohttp
-from typing import Optional, Union, Literal
 from bs4 import BeautifulSoup
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
@@ -13,10 +15,9 @@ def recursive_url_metadata_extractor(
     raw_html: str,
     url: str,
     response: Union[requests.Response, aiohttp.ClientResponse],
-    *,
-    type: Literal["documents", "api_reference", "source_code"],
-    lang: Optional[str] = None,
+    **kwargs,
 ) -> dict:
+    """Extract metadata from the recursive url."""
     soup = BeautifulSoup(raw_html, "lxml")
     title_element = soup.find("h1")
     title = (
@@ -25,8 +26,7 @@ def recursive_url_metadata_extractor(
     return {
         "source": url,
         "title": title,
-        "type": type,
-        "lang": lang if lang else "",
+        **kwargs,
     }
 
 
