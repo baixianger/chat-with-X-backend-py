@@ -183,8 +183,8 @@ async def respond(
 
 builder = StateGraph(
     state_schema=AgentState,
-    config_schema=Configuration,
     input_schema=InputState,
+    context_schema=Configuration,
 )
 builder.add_node(analyze_and_route_query)
 builder.add_node(ask_for_more_info)

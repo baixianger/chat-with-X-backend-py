@@ -32,6 +32,8 @@ dev = [
     "rich>=14.1.0",
     "jupyter>=1.1.1",
     "ruff>=0.12.7",
+    "langgraph-cli[inmem]>=0.3.6",
+    "langgraph-api>=0.2.125",
 ]
 
 [tool.pylint.MASTER]
